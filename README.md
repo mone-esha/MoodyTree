@@ -54,8 +54,10 @@ lib/
     └── mood_constants.dart     # Mood definitions (label, image, color)
 ```
 ## Screenshots
-<img width="720" height="1650" alt="image" src="https://github.com/user-attachments/assets/89f1edb5-4088-4619-80a7-738137e42969" /> <img width="720" height="1494" alt="image" src="https://github.com/user-attachments/assets/09754951-e23a-4e83-bdda-b3c7d476d9d9" /> <img width="720" height="1503" alt="image" src="https://github.com/user-attachments/assets/d7a2f3b0-6fe7-405d-b9c0-36b9667803fb" />
-<img width="720" height="1498" alt="image" src="https://github.com/user-attachments/assets/ab561230-d51c-4cb4-9a10-9984e0fe1fdf" /> <img width="720" height="1489" alt="image" src="https://github.com/user-attachments/assets/3c4afad6-73a0-46b8-a2da-41a77653d587" />
+<img width="1434" height="744" alt="image" src="https://github.com/user-attachments/assets/6bf5d856-6e30-4c07-976b-4a9dee75210e" />
+
+<img width="1600" height="1113" alt="image" src="https://github.com/user-attachments/assets/156d3629-3ad2-4208-b287-3fde06eb6634" />
+
 
 
 
