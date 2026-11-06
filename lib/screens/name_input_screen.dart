@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'home_screen.dart';
 
 class NameInputScreen extends StatefulWidget {
   const NameInputScreen({super.key});
@@ -16,11 +15,14 @@ class _NameInputScreenState extends State<NameInputScreen> {
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
-      setState(() {
-        _hasText = _controller.text.trim().isNotEmpty;
-      });
-    });
+    _controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final hasText = _controller.text.trim().isNotEmpty;
+    if (hasText != _hasText) {
+      setState(() => _hasText = hasText);
+    }
   }
 
   Future<void> _saveNameAndContinue() async {
@@ -32,13 +34,13 @@ class _NameInputScreenState extends State<NameInputScreen> {
 
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-    );
+    // Just close this screen. The caller handles what happens next.
+    Navigator.of(context).pop();
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -51,7 +53,10 @@ class _NameInputScreenState extends State<NameInputScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFFFB74D), Color.fromARGB(255, 91, 182, 117)],
+            colors: [
+              Color(0xFFFFB74D),
+              Color.fromARGB(255, 91, 182, 117),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -71,9 +76,6 @@ class _NameInputScreenState extends State<NameInputScreen> {
                     color: Color.fromARGB(221, 255, 255, 255),
                   ),
                 ),
-                const SizedBox(height: 8),
-                
-                
                 const SizedBox(height: 40),
                 Container(
                   decoration: BoxDecoration(
@@ -81,7 +83,8 @@ class _NameInputScreenState extends State<NameInputScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color.fromARGB(255, 56, 56, 56).withOpacity(0.05),
+                        color: const Color.fromARGB(255, 56, 56, 56)
+                            .withOpacity(0.05),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -93,7 +96,8 @@ class _NameInputScreenState extends State<NameInputScreen> {
                     style: const TextStyle(fontSize: 18),
                     decoration: const InputDecoration(
                       hintText: 'Your name',
-                      hintStyle: TextStyle(color: Color.fromARGB(96, 56, 56, 56)),
+                      hintStyle:
+                          TextStyle(color: Color.fromARGB(96, 56, 56, 56)),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 20,
@@ -112,7 +116,8 @@ class _NameInputScreenState extends State<NameInputScreen> {
                     child: ElevatedButton(
                       onPressed: _hasText ? _saveNameAndContinue : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(221, 48, 48, 48),
+                        backgroundColor:
+                            const Color.fromARGB(221, 48, 48, 48),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

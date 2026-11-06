@@ -5,7 +5,6 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../utils/mood_constants.dart';
 import '../models/mood_entry.dart';
 import '../services/storage_service.dart';
-import 'home_screen.dart';
 
 class SelectMoodScreen extends StatefulWidget {
   final DateTime date;
@@ -33,17 +32,16 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
   void initState() {
     super.initState();
 
+    assert(moods.isNotEmpty, 'moods must not be empty');
+
     _noteController = TextEditingController(
       text: widget.existingEntry?.note ?? '',
     );
 
     final savedIndex = widget.existingEntry?.moodIndex ?? 0;
+    _currentIndex = moods.isEmpty ? 0 : savedIndex.clamp(0, moods.length - 1);
 
-    _currentIndex = savedIndex.clamp(0, moods.length - 1);
-
-    _pageController = PageController(
-      initialPage: _currentIndex,
-    );
+    _pageController = PageController(initialPage: _currentIndex);
   }
 
   @override
@@ -54,48 +52,38 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
   }
 
   Future<void> _saveMood() async {
-    if (_isSaving) return;
+  if (_isSaving) return;
+  FocusScope.of(context).unfocus();
+  setState(() => _isSaving = true);
 
-    FocusScope.of(context).unfocus();
+  try {
+    debugPrint('=== SAVE START ===');
+    debugPrint('widget.date = ${widget.date}');
 
-    setState(() {
-      _isSaving = true;
-    });
+    final entry = MoodEntry(
+      date: widget.date,
+      moodIndex: _currentIndex,
+      note: _noteController.text.trim(),
+    );
 
-    try {
-      final entry = MoodEntry(
-        date: widget.date,
-        moodIndex: _currentIndex,
-        note: _noteController.text.trim(),
-      );
+    debugPrint('Saving entry: date=${entry.date} mood=${entry.moodIndex}');
+    await StorageService.saveMoodEntry(entry);
+    debugPrint('Saved OK');
 
-      await StorageService.saveMoodEntry(entry);
-
-      if (!mounted) return;
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        _isSaving = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not save mood: $error'),
-        ),
-      );
-    }
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  } catch (error, stack) {
+    debugPrint('SAVE ERROR: $error\n$stack');
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Could not save mood: $error')),
+    );
   }
+}
 
   void _onPageChanged(int index) {
     if (!mounted) return;
-
     setState(() {
       _currentIndex = index;
     });
@@ -105,7 +93,8 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
   Widget build(BuildContext context) {
     final isEditing = widget.existingEntry != null;
 
-    final currentColor = Color.lerp(moods[_currentIndex].color, Colors.white, 0.5)!;
+    final currentColor =
+        Color.lerp(moods[_currentIndex].color, Colors.white, 0.5)!;
 
     return Theme(
       data: ThemeData.light().copyWith(
@@ -133,7 +122,8 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+                  final keyboardHeight =
+                      MediaQuery.of(context).viewInsets.bottom;
 
                   final moodAreaHeight = keyboardHeight > 0
                       ? constraints.maxHeight * 0.38
@@ -151,7 +141,6 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
                         child: Column(
                           children: [
                             _buildAppBar(isEditing),
-
                             SizedBox(
                               height: moodAreaHeight,
                               child: PageView.builder(
@@ -160,14 +149,14 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
                                 onPageChanged: _onPageChanged,
                                 itemBuilder: (context, index) {
                                   final mood = moods[index];
-
                                   return Center(
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 24,
                                       ),
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Flexible(
@@ -194,9 +183,7 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
                                 },
                               ),
                             ),
-
                             const SizedBox(height: 12),
-
                             SmoothPageIndicator(
                               controller: _pageController,
                               count: moods.length,
@@ -208,9 +195,7 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
                                 dotColor: Colors.black26,
                               ),
                             ),
-
                             const SizedBox(height: 20),
-
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
@@ -240,15 +225,18 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
                                         vertical: 14,
                                       ),
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(30),
+                                        borderRadius:
+                                            BorderRadius.circular(30),
                                         borderSide: BorderSide.none,
                                       ),
                                       enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(30),
+                                        borderRadius:
+                                            BorderRadius.circular(30),
                                         borderSide: BorderSide.none,
                                       ),
                                       focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(30),
+                                        borderRadius:
+                                            BorderRadius.circular(30),
                                         borderSide: const BorderSide(
                                           color: Colors.black54,
                                           width: 1,
@@ -256,9 +244,7 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
                                       ),
                                     ),
                                   ),
-
                                   const SizedBox(height: 16),
-
                                   SizedBox(
                                     width: double.infinity,
                                     height: 52,
@@ -281,7 +267,8 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
                                           ? const SizedBox(
                                               width: 22,
                                               height: 22,
-                                              child: CircularProgressIndicator(
+                                              child:
+                                                  CircularProgressIndicator(
                                                 strokeWidth: 2,
                                                 color: Colors.white,
                                               ),
@@ -300,7 +287,6 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 24),
                           ],
                         ),
@@ -318,22 +304,14 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
 
   Widget _buildAppBar(bool isEditing) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(
-              Icons.arrow_back,
-              color: Colors.black87,
-            ),
-            onPressed: _isSaving
-                ? null
-                : () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed:
+                _isSaving ? null : () => Navigator.of(context).pop(),
           ),
-
           Expanded(
             child: Text(
               isEditing ? 'Edit Mood' : 'How are you feeling?',
@@ -345,7 +323,6 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
               ),
             ),
           ),
-
           const SizedBox(width: 48),
         ],
       ),
@@ -353,7 +330,6 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
   }
 }
 
-/// Removes the overscroll glow effect.
 class _NoGlowScrollBehavior extends ScrollBehavior {
   const _NoGlowScrollBehavior();
 

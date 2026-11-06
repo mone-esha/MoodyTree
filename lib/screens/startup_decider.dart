@@ -20,29 +20,39 @@ class _StartupDeciderState extends State<StartupDecider> {
   }
 
   Future<void> _decide() async {
-    final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString('user_name');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final name = prefs.getString('user_name');
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (name == null || name.isEmpty) {
+      
+      if (name == null || name.isEmpty) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const NameInputScreen()),
+        );
+        if (!mounted) return;
+      }
+
+      
+      final hasToday = await StorageService.hasEntryForToday();
+      if (!mounted) return;
+
+      if (!hasToday) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => SelectMoodScreen(date: DateTime.now()),
+          ),
+        );
+        if (!mounted) return;
+      }
+
+     
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const NameInputScreen()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
-      return;
-    }
-
-    final hasToday = await StorageService.hasEntryForToday();
-
-    if (!mounted) return;
-
-    if (!hasToday) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => SelectMoodScreen(date: DateTime.now()),
-        ),
-      );
-    } else {
+    } catch (_) {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );

@@ -9,10 +9,10 @@ class CalendarTab extends StatefulWidget {
   const CalendarTab({super.key});
 
   @override
-  State<CalendarTab> createState() => _CalendarTabState();
+  State<CalendarTab> createState() => CalendarTabState();
 }
 
-class _CalendarTabState extends State<CalendarTab> {
+class CalendarTabState extends State<CalendarTab> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, MoodEntry> _entriesByDate = {};
@@ -23,8 +23,13 @@ class _CalendarTabState extends State<CalendarTab> {
     _loadEntries();
   }
 
+  /// Public so HomeScreen can trigger a refresh after a save.
+  Future<void> reload() => _loadEntries();
+
   Future<void> _loadEntries() async {
     final entries = await StorageService.getAllEntries();
+    if (!mounted) return;
+
     final map = <DateTime, MoodEntry>{};
     for (final entry in entries) {
       final normalized =
@@ -48,7 +53,9 @@ class _CalendarTabState extends State<CalendarTab> {
 
     if (normalizedDay.isAfter(normalizedToday)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You can't log a mood for a future date ><")),
+        const SnackBar(
+          content: Text("You can't log a mood for a future date."),
+        ),
       );
       return;
     }
@@ -60,11 +67,16 @@ class _CalendarTabState extends State<CalendarTab> {
         builder: (_) => SelectMoodScreen(date: day, existingEntry: existing),
       ),
     );
-    _loadEntries();
+
+    if (!mounted) return;
+    await _loadEntries();
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedEntry =
+        _selectedDay != null ? _entryForDay(_selectedDay!) : null;
+
     return Container(
       color: Colors.white.withOpacity(0.75),
       child: SingleChildScrollView(
@@ -87,65 +99,146 @@ class _CalendarTabState extends State<CalendarTab> {
               onPageChanged: (focusedDay) {
                 _focusedDay = focusedDay;
               },
-              calendarStyle: CalendarStyle(
-                cellMargin: const EdgeInsets.all(6),
-                todayDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
-                  shape: BoxShape.circle,
-                ),
+              // Turn OFF every built-in decoration so only our builders paint.
+              calendarStyle: const CalendarStyle(
+                cellMargin: EdgeInsets.all(6),
+                todayDecoration: BoxDecoration(),
+                selectedDecoration: BoxDecoration(),
+                outsideDecoration: BoxDecoration(),
+                defaultDecoration: BoxDecoration(),
+                rangeStartDecoration: BoxDecoration(),
+                rangeEndDecoration: BoxDecoration(),
+                withinRangeDecoration: BoxDecoration(),
+                disabledDecoration: BoxDecoration(),
               ),
               calendarBuilders: CalendarBuilders(
-                defaultBuilder: (context, day, focusedDay) {
+                // ---------- SELECTED DAY ----------
+                // Must ALWAYS return a widget. Returning null makes
+                // TableCalendar paint the (empty) selectedDecoration.
+                selectedBuilder: (context, day, focusedDay) {
                   final entry = _entryForDay(day);
-                  if (entry == null) return null;
+
+                  if (entry == null) {
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.black87,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
 
                   final mood = moods[entry.moodIndex];
-                  final isToday = isSameDay(day, DateTime.now());
-
                   return Container(
                     margin: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: mood.color,
                       shape: BoxShape.circle,
-                      border: isToday
-                          ? Border.all(color: Colors.black87, width: 2)
-                          : null,
+                      border: Border.all(color: Colors.black, width: 2),
                     ),
                     child: Center(
                       child: Text(
                         '${day.day}',
                         style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   );
                 },
+
+                // ---------- TODAY ----------
+                // Must ALWAYS return a widget. Previously this returned
+                // null when an entry existed, which made TableCalendar
+                // paint the empty todayDecoration → blank cell after restart.
                 todayBuilder: (context, day, focusedDay) {
                   final entry = _entryForDay(day);
-                  if (entry != null) return null;
 
+                  if (entry == null) {
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style:
+                              const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    );
+                  }
+
+                  final mood = moods[entry.moodIndex];
                   return Container(
                     margin: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: mood.color,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.black87, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${day.day}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+
+                // ---------- EVERY OTHER DAY ----------
+                defaultBuilder: (context, day, focusedDay) {
+                  final entry = _entryForDay(day);
+                  if (entry == null) return null;
+
+                  final mood = moods[entry.moodIndex];
+                  return Container(
+                    margin: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: mood.color,
                       shape: BoxShape.circle,
                     ),
                     child: Center(
-                      child: Text('${day.day}',
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        '${day.day}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   );
                 },
               ),
             ),
             const SizedBox(height: 16),
-            if (_selectedDay != null && _entryForDay(_selectedDay!) != null)
+            if (selectedEntry != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'Note: ${_entryForDay(_selectedDay!)!.note.isEmpty ? "(no note)" : _entryForDay(_selectedDay!)!.note}',
+                  'Note: ${selectedEntry.note.isEmpty ? "(no note)" : selectedEntry.note}',
                   style: const TextStyle(
-                      fontSize: 14, fontStyle: FontStyle.italic),
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
             const SizedBox(height: 32),

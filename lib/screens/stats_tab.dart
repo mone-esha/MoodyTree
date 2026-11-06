@@ -8,12 +8,13 @@ class StatsTab extends StatefulWidget {
   const StatsTab({super.key});
 
   @override
-  State<StatsTab> createState() => _StatsTabState();
+  State<StatsTab> createState() => StatsTabState();
 }
 
-class _StatsTabState extends State<StatsTab> {
+class StatsTabState extends State<StatsTab> {
   List<MoodEntry> _allEntries = [];
-  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _selectedMonth =
+      DateTime(DateTime.now().year, DateTime.now().month);
   int _touchedIndex = -1;
 
   @override
@@ -22,8 +23,12 @@ class _StatsTabState extends State<StatsTab> {
     _loadEntries();
   }
 
+  /// Public so HomeScreen can trigger a refresh after a save.
+  Future<void> reload() => _loadEntries();
+
   Future<void> _loadEntries() async {
     final entries = await StorageService.getAllEntries();
+    if (!mounted) return;
     setState(() {
       _allEntries = entries;
     });
@@ -46,7 +51,8 @@ class _StatsTabState extends State<StatsTab> {
 
   void _changeMonth(int delta) {
     setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + delta);
+      _selectedMonth =
+          DateTime(_selectedMonth.year, _selectedMonth.month + delta);
       _touchedIndex = -1;
     });
   }
@@ -62,35 +68,36 @@ class _StatsTabState extends State<StatsTab> {
   @override
   Widget build(BuildContext context) {
     final counts = _countsForSelectedMonth;
-    final total = counts.values.fold(0, (sum, c) => sum + c);
+    final total = counts.values.fold<int>(0, (sum, c) => sum + c);
 
-    final chartData = <Map<String, dynamic>>[];
+    final chartData = <_MoodStat>[];
     for (int i = 0; i < moods.length; i++) {
       final count = counts[i] ?? 0;
       if (count > 0) {
-        chartData.add({
-          'mood': moods[i].label,
-          'count': count,
-          'percent': total == 0 ? 0.0 : (count / total) * 100,
-          'color': moods[i].color,
-        });
+        chartData.add(_MoodStat(
+          mood: moods[i].label,
+          count: count,
+          percent: total == 0 ? 0.0 : (count / total) * 100,
+          color: moods[i].color,
+        ));
       }
     }
-
-    chartData.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+    chartData.sort((a, b) => b.count.compareTo(a.count));
 
     final maxCount = chartData.isEmpty
         ? 1
-        : chartData.map((d) => d['count'] as int).reduce((a, b) => a > b ? a : b);
+        : chartData.map((d) => d.count).reduce((a, b) => a > b ? a : b);
 
     return Container(
       color: Colors.white.withOpacity(0.75),
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Mood Stats', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Text(
+            'Mood Stats',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -98,7 +105,13 @@ class _StatsTabState extends State<StatsTab> {
                 icon: const Icon(Icons.chevron_left),
                 onPressed: () => _changeMonth(-1),
               ),
-              Text(_monthLabel, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(
+                _monthLabel,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed: () => _changeMonth(1),
@@ -106,14 +119,18 @@ class _StatsTabState extends State<StatsTab> {
             ],
           ),
           const SizedBox(height: 24),
-
           if (chartData.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: Text('No mood entries for this month yet')),
+              child: Center(
+                child: Text('No mood entries for this month yet'),
+              ),
             )
           else ...[
-            const Text('By Count', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const Text(
+              'By Count',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             SizedBox(
               height: 240,
@@ -126,8 +143,8 @@ class _StatsTabState extends State<StatsTab> {
                       x: i,
                       barRods: [
                         BarChartRodData(
-                          toY: (d['count'] as int).toDouble(),
-                          color: d['color'] as Color,
+                          toY: d.count.toDouble(),
+                          color: d.color,
                           width: 28,
                           borderRadius: BorderRadius.circular(6),
                         ),
@@ -138,8 +155,12 @@ class _StatsTabState extends State<StatsTab> {
                     leftTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
                     ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
@@ -151,7 +172,7 @@ class _StatsTabState extends State<StatsTab> {
                           return Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                              chartData[index]['mood'] as String,
+                              chartData[index].mood,
                               style: const TextStyle(fontSize: 11),
                             ),
                           );
@@ -166,10 +187,11 @@ class _StatsTabState extends State<StatsTab> {
                 curve: Curves.easeOutCubic,
               ),
             ),
-
             const SizedBox(height: 32),
-
-            const Text('By Percentage', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const Text(
+              'By Percentage',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             SizedBox(
               height: 240,
@@ -186,7 +208,8 @@ class _StatsTabState extends State<StatsTab> {
                           _touchedIndex = -1;
                           return;
                         }
-                        _touchedIndex = response.touchedSection!.touchedSectionIndex;
+                        _touchedIndex =
+                            response.touchedSection!.touchedSectionIndex;
                       });
                     },
                   ),
@@ -194,13 +217,12 @@ class _StatsTabState extends State<StatsTab> {
                     final d = chartData[i];
                     final isTouched = i == _touchedIndex;
                     final radius = isTouched ? 70.0 : 60.0;
-                    final percent = d['percent'] as double;
 
                     return PieChartSectionData(
-                      value: percent,
-                      color: d['color'] as Color,
+                      value: d.percent,
+                      color: d.color,
                       radius: radius,
-                      title: '${percent.toStringAsFixed(0)}%',
+                      title: '${d.percent.toStringAsFixed(0)}%',
                       titleStyle: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -213,9 +235,7 @@ class _StatsTabState extends State<StatsTab> {
                 curve: Curves.easeOutCubic,
               ),
             ),
-
             const SizedBox(height: 24),
-
             Wrap(
               spacing: 12,
               runSpacing: 8,
@@ -227,12 +247,15 @@ class _StatsTabState extends State<StatsTab> {
                       width: 12,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: d['color'] as Color,
+                        color: d.color,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text(d['mood'] as String, style: const TextStyle(fontSize: 13)),
+                    Text(
+                      d.mood,
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ],
                 );
               }).toList(),
@@ -242,4 +265,18 @@ class _StatsTabState extends State<StatsTab> {
       ),
     );
   }
+}
+
+class _MoodStat {
+  final String mood;
+  final int count;
+  final double percent;
+  final Color color;
+
+  const _MoodStat({
+    required this.mood,
+    required this.count,
+    required this.percent,
+    required this.color,
+  });
 }
