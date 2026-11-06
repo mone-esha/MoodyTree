@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-
 import '../utils/mood_constants.dart';
+import '../utils/mood_messages.dart';
 import '../models/mood_entry.dart';
 import '../services/storage_service.dart';
+import 'mood_message_screen.dart';
 
 class SelectMoodScreen extends StatefulWidget {
   final DateTime date;
@@ -53,35 +54,45 @@ class _SelectMoodScreenState extends State<SelectMoodScreen> {
 
   Future<void> _saveMood() async {
   if (_isSaving) return;
+
   FocusScope.of(context).unfocus();
-  setState(() => _isSaving = true);
+
+  setState(() {
+    _isSaving = true;
+  });
 
   try {
-    debugPrint('=== SAVE START ===');
-    debugPrint('widget.date = ${widget.date}');
-
     final entry = MoodEntry(
       date: widget.date,
       moodIndex: _currentIndex,
       note: _noteController.text.trim(),
     );
 
-    debugPrint('Saving entry: date=${entry.date} mood=${entry.moodIndex}');
     await StorageService.saveMoodEntry(entry);
-    debugPrint('Saved OK');
 
     if (!mounted) return;
-    Navigator.of(context).pop();
-  } catch (error, stack) {
-    debugPrint('SAVE ERROR: $error\n$stack');
+
+    final message = randomMessageForMood(_currentIndex);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MoodMessageScreen(message: message),
+      ),
+    );
+
     if (!mounted) return;
-    setState(() => _isSaving = false);
+
+    Navigator.of(context).pop();
+  } catch (error) {
+    if (!mounted) return;
+    setState(() {
+      _isSaving = false;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Could not save mood: $error')),
     );
   }
 }
-
   void _onPageChanged(int index) {
     if (!mounted) return;
     setState(() {
