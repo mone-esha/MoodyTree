@@ -34,7 +34,7 @@ class _NameInputScreenState extends State<NameInputScreen> {
 
     if (!mounted) return;
 
-    // Just close this screen. The caller handles what happens next.
+    
     Navigator.of(context).pop();
   }
 

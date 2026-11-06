@@ -23,7 +23,7 @@ class CalendarTabState extends State<CalendarTab> {
     _loadEntries();
   }
 
-  /// Public so HomeScreen can trigger a refresh after a save.
+  
   Future<void> reload() => _loadEntries();
 
   Future<void> _loadEntries() async {
@@ -99,7 +99,7 @@ class CalendarTabState extends State<CalendarTab> {
               onPageChanged: (focusedDay) {
                 _focusedDay = focusedDay;
               },
-              // Turn OFF every built-in decoration so only our builders paint.
+              
               calendarStyle: const CalendarStyle(
                 cellMargin: EdgeInsets.all(6),
                 todayDecoration: BoxDecoration(),
@@ -112,9 +112,7 @@ class CalendarTabState extends State<CalendarTab> {
                 disabledDecoration: BoxDecoration(),
               ),
               calendarBuilders: CalendarBuilders(
-                // ---------- SELECTED DAY ----------
-                // Must ALWAYS return a widget. Returning null makes
-                // TableCalendar paint the (empty) selectedDecoration.
+                
                 selectedBuilder: (context, day, focusedDay) {
                   final entry = _entryForDay(day);
 
@@ -160,10 +158,7 @@ class CalendarTabState extends State<CalendarTab> {
                   );
                 },
 
-                // ---------- TODAY ----------
-                // Must ALWAYS return a widget. Previously this returned
-                // null when an entry existed, which made TableCalendar
-                // paint the empty todayDecoration → blank cell after restart.
+                
                 todayBuilder: (context, day, focusedDay) {
                   final entry = _entryForDay(day);
 
@@ -204,7 +199,7 @@ class CalendarTabState extends State<CalendarTab> {
                   );
                 },
 
-                // ---------- EVERY OTHER DAY ----------
+                
                 defaultBuilder: (context, day, focusedDay) {
                   final entry = _entryForDay(day);
                   if (entry == null) return null;

@@ -23,7 +23,7 @@ class StatsTabState extends State<StatsTab> {
     _loadEntries();
   }
 
-  /// Public so HomeScreen can trigger a refresh after a save.
+  
   Future<void> reload() => _loadEntries();
 
   Future<void> _loadEntries() async {
